@@ -1,4 +1,4 @@
-export interface Article {
+export type Article = {
   id: string;
   authors: string[] | null;
   featured_image: string | null;
@@ -10,4 +10,5 @@ export interface Article {
   text: string;
   title: string;
   url: string;
-} 
+  score?: number;
+};

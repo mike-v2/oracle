@@ -1,7 +1,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, type CoreMessage, generateText } from 'ai';
 import pinecone from '@/lib/pinecone';
-import type { Article } from '@/types/article';
+import type { Article } from "@/types";
 
 if (!process.env.DEEPSEEK_API_KEY) {
   throw new Error('Missing DEEPSEEK_API_KEY in environment variables');
@@ -77,20 +77,30 @@ Generate a search query.`;
 
   const sources: Article[] =
     (searchResponse as any)?.result?.hits
-      ?.map((hit: any) => ({ ...hit.fields, id: hit._id }))
+      ?.map((hit: any) => ({ ...hit.fields, id: hit._id, score: hit._score }))
       .filter((item: Article | undefined): item is Article => !!item) ?? [];
 
   const context = sources
-    .map((article, index) => `Source ${index + 1}: ${article.text.substring(0, 500)}`)
-    .join('\n\n');
+    .map(
+      (article) =>
+        `Source:\nPublication: ${article.publication}\nTitle: ${
+          article.title
+        }\nText: ${article.text.substring(0, 500)}`
+    )
+    .join("\n\n");
 
   const prompt = `
-Answer using ONLY these sources:
-${context}
+Answer the following question using ONLY the provided sources.
 
-Guidelines:
-1. Use verbatim quotes with format: "EXACT QUOTE"[Source X]
-2. Cite sources for all factual claims
+<sources>
+${context}
+</sources>
+
+When you answer, you MUST follow these guidelines:
+1. For every factual claim you make, you must cite the source.
+2. To cite a source, include the publication and title in parentheses at the end of the sentence, like this: (The Grayzone, The West's phantom 'moral majority' is a marketing tool for war).
+3. If you are quoting directly from a source, enclose the quote in double quotation marks and add the citation, like this: "Direct quote from the article." (MintPress, How America's 'Radical' Foreign Policy Is Paving the Way for a Multipolar World).
+4. Do not makeup information or use external knowledge.
 
 Question: ${latestMessage.content as string}
 `;

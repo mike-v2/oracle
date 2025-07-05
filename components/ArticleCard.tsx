@@ -1,7 +1,7 @@
 'use client';
 
 import { format } from 'date-fns';
-import type { Article } from '@/types/article';
+import type { Article } from "@/types";
 
 export function ArticleCard({ article }: { article: Article }) {
   return (
@@ -9,7 +9,13 @@ export function ArticleCard({ article }: { article: Article }) {
       <div className="flex items-center text-xs text-gray-500 mb-1">
         <span>{article.publication}</span>
         <span className="mx-2">·</span>
-        <span>{format(new Date(article.publication_date), 'MMM d, yyyy')}</span>
+        <span>{format(new Date(article.publication_date), "MMM d, yyyy")}</span>
+        {article.score && (
+          <>
+            <span className="mx-2">·</span>
+            <span>Score: {article.score.toFixed(3)}</span>
+          </>
+        )}
       </div>
       <a
         href={article.url}

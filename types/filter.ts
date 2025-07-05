@@ -1,0 +1,1 @@
+export type SortOption = 'Relevance' | 'Date' | 'Publication'; 
