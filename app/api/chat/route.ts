@@ -28,43 +28,74 @@ export async function POST(req: Request) {
   const { messages, filters }: { messages: CoreMessage[]; filters: any } =
     await req.json();
 
-  const conversation = messages.map(m => `${m.role}: ${m.content}`).join('\n');
-  const queryGenerationPrompt = `You are a helpful assistant that generates search queries based on a conversation.
-The user is having a conversation with a chatbot. Given the conversation history, you need to generate a self-contained search query that can be used to retrieve relevant articles from a vector database.
-The search query should be based on the last user message, but also incorporate context from previous messages if necessary to make the query specific and self-contained.
+  let contextualQuery = messages[0].content as string;
+  if (messages.length > 1) {
+    const conversation = messages
+      .map((m) => `${m.role}: ${m.content}`)
+      .join("\n");
+    const contextualQuerySystemPrompt = `You will be provided with a conversation history. Your task is to generate a search query based on this history. You must output the query in a JSON format, with a single key "query".
 
-Here is the conversation history:
----
-${conversation}
----
+EXAMPLE CONVERSATION:
+user: I want to know about the latest developments in AI.
+assistant: Sure, there have been many recent breakthroughs. Are you interested in large language models, computer vision, or something else?
+user: Tell me about large language models.
 
-Generate a search query.`;
+EXAMPLE JSON OUTPUT:
+{
+    "query": "latest developments in large language models AI"
+}`;
 
-  const { text: contextualQuery } = await generateText({
-    model: deepseek('deepseek-chat'),
-    prompt: queryGenerationPrompt,
-    temperature: 0.0,
-  });
-  console.log('contextualQuery:', contextualQuery);
+    const contextualQueryPrompt = `Conversation history:\n---\n${conversation}\n---`;
+
+    const { text } = await generateText({
+      model: deepseek("deepseek-chat"),
+      system: contextualQuerySystemPrompt,
+      prompt: contextualQueryPrompt,
+      temperature: 0.0,
+      // @ts-expect-error - responseFormat is a valid property
+      responseFormat: { type: "json_object" },
+    });
+
+    const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
+    const jsonString = jsonMatch ? jsonMatch[1] : text;
+    contextualQuery = JSON.parse(jsonString).query;
+    console.log("contextualQuery:", contextualQuery);
+  }
 
   const latestMessage = messages[messages.length - 1];
-  
-  const pineconeFilter: any = {};
+
+  let pineconeFilter: any = {};
   if (filters.publications?.length) {
-    pineconeFilter.publication = { '$in': filters.publications };
+    if (filters.publications.length === 1) {
+      pineconeFilter.publication = filters.publications[0];
+    } else {
+      pineconeFilter = {
+        $or: filters.publications.map((pub: string) => ({
+          publication: pub,
+        })),
+      };
+    }
   }
-  
+
   const dateFilter: any = {};
   if (filters.dateRange?.from) {
-    dateFilter['$gte'] = new Date(filters.dateRange.from).getTime() / 1000;
+    dateFilter["$gte"] = new Date(filters.dateRange.from).getTime() / 1000;
   }
   if (filters.dateRange?.to) {
-    dateFilter['$lte'] = new Date(filters.dateRange.to).getTime() / 1000;
+    dateFilter["$lte"] = new Date(filters.dateRange.to).getTime() / 1000;
   }
 
   if (Object.keys(dateFilter).length > 0) {
-    pineconeFilter.publication_date = dateFilter;
+    if (pineconeFilter.$or) {
+      pineconeFilter = {
+        $and: [pineconeFilter, { publication_date: dateFilter }],
+      };
+    } else {
+      pineconeFilter.publication_date = dateFilter;
+    }
   }
+
+  console.log("Pinecone filter:", JSON.stringify(pineconeFilter, null, 2));
 
   const searchResponse = await namespace.searchRecords({
     query: {
@@ -72,7 +103,7 @@ Generate a search query.`;
       inputs: { text: contextualQuery },
       filter: pineconeFilter,
     },
-    fields: ['*'], // Request all metadata fields
+    fields: ["*"], // Request all metadata fields
   });
 
   const sources: Article[] =
@@ -108,17 +139,21 @@ Question: ${latestMessage.content as string}
   // Add system prompt
   const augmentedMessages: CoreMessage[] = [
     ...messages.slice(0, -1),
-    { role: 'system', content: prompt },
+    { role: "system", content: prompt },
     latestMessage,
   ];
 
   const result = streamText({
-    model: deepseek('deepseek-chat'),
+    model: deepseek("deepseek-chat"),
     messages: augmentedMessages,
   });
 
   const sourcesJson = JSON.stringify(sources);
-  const encodedSources = Buffer.from(sourcesJson).toString('base64');
+  const encodedSources = btoa(
+    new TextEncoder()
+      .encode(sourcesJson)
+      .reduce((data, byte) => data + String.fromCharCode(byte), "")
+  );
 
   return result.toDataStreamResponse({
     headers: {

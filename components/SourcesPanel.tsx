@@ -192,19 +192,19 @@ export function SourcesPanel({
           <h4 className="font-semibold text-sm mb-2 px-4">Publications</h4>
           <div className="flex flex-col space-y-2 px-4">
             {publications.map((pub) => (
-              <div key={pub} className="flex items-center space-x-2">
+              <div key={pub.dbName} className="flex items-center space-x-2">
                 <Checkbox
-                  id={pub}
-                  checked={filters.publications.includes(pub)}
+                  id={pub.dbName}
+                  checked={filters.publications.includes(pub.dbName)}
                   onCheckedChange={(checked) =>
-                    handlePublicationChange(pub, !!checked)
+                    handlePublicationChange(pub.dbName, !!checked)
                   }
                 />
                 <label
-                  htmlFor={pub}
+                  htmlFor={pub.dbName}
                   className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  {pub}
+                  {pub.displayName}
                 </label>
               </div>
             ))}

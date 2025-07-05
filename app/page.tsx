@@ -34,7 +34,9 @@ export default function Page() {
         const sourcesHeader = responseRef.current.headers.get("X-Sources");
         if (sourcesHeader) {
           try {
-            const decodedSources = atob(sourcesHeader);
+            const decodedSources = new TextDecoder().decode(
+              Uint8Array.from(atob(sourcesHeader), (c) => c.charCodeAt(0))
+            );
             const parsedSources = JSON.parse(decodedSources);
             console.log("Parsed sources:", parsedSources);
             setSources(parsedSources || []);
