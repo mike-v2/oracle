@@ -1,5 +1,6 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, type CoreMessage, generateText } from "ai";
+import { format } from "date-fns";
 import pinecone from "@/lib/pinecone";
 import type { Article } from "@/types";
 
@@ -117,12 +118,15 @@ EXAMPLE JSON OUTPUT:
       (article) =>
         `Source:\nPublication: ${article.publication}\nTitle: ${
           article.title
-        }\nText: ${article.text.substring(0, 500)}`
+        }\nDate: ${format(
+          new Date(article.publication_date),
+          "yyyy-MM-dd"
+        )}\nText: ${article.text.substring(0, 500)}`
     )
     .join("\n\n");
 
   const prompt = `
-Answer the following question using ONLY the provided sources.
+Answer the following question using ONLY the provided sources. Pay close attention to the date of each source to understand the context of the information.
 
 <sources>
 ${context}
