@@ -1,28 +1,20 @@
-import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, type CoreMessage, generateText } from 'ai';
-import pinecone from '@/lib/pinecone';
+import { createOpenAI } from "@ai-sdk/openai";
+import { streamText, type CoreMessage, generateText } from "ai";
+import pinecone from "@/lib/pinecone";
 import type { Article } from "@/types";
 
-if (!process.env.DEEPSEEK_API_KEY) {
-  throw new Error('Missing DEEPSEEK_API_KEY in environment variables');
-}
-if (!process.env.PINECONE_INDEX) {
-  throw new Error('Missing PINECONE_INDEX in environment variables');
-}
-if (!process.env.PINECONE_HOST) {
-  throw new Error('Missing PINECONE_HOST in environment variables');
-}
+export const maxDuration = 60;
 
 const deepseek = createOpenAI({
   apiKey: process.env.DEEPSEEK_API_KEY,
-  baseURL: 'https://api.deepseek.com/v1',
+  baseURL: "https://api.deepseek.com/v1",
 });
 
 const pineconeIndex = pinecone.index(
-  process.env.PINECONE_INDEX,
-  process.env.PINECONE_HOST,
+  process.env.PINECONE_INDEX!,
+  process.env.PINECONE_HOST!
 );
-const namespace = pineconeIndex.namespace('articles');
+const namespace = pineconeIndex.namespace("articles");
 
 export async function POST(req: Request) {
   const {
@@ -166,7 +158,7 @@ Question: ${latestMessage.content as string}
 
   return result.toDataStreamResponse({
     headers: {
-      'X-Sources': encodedSources,
+      "X-Sources": encodedSources,
     },
   });
 } 
