@@ -3,6 +3,7 @@ import { streamText, type CoreMessage, generateText } from "ai";
 import { format } from "date-fns";
 import pinecone from "@/lib/pinecone";
 import type { Article } from "@/types";
+import { publications } from "@/lib/constants";
 
 export const maxDuration = 60;
 
@@ -113,12 +114,17 @@ EXAMPLE JSON OUTPUT:
       ?.map((hit: any) => ({ ...hit.fields, id: hit._id, score: hit._score }))
       .filter((item: Article | undefined): item is Article => !!item) ?? [];
 
+  const publicationDisplayNameMap = new Map(
+    publications.map((p) => [p.dbName, p.displayName])
+  );
+
   const context = sources
     .map(
       (article) =>
-        `Source:\nPublication: ${article.publication}\nTitle: ${
-          article.title
-        }\nDate: ${format(
+        `Source:\nPublication: ${
+          publicationDisplayNameMap.get(article.publication) ??
+          article.publication
+        }\nTitle: ${article.title}\nDate: ${format(
           new Date(article.publication_date),
           "yyyy-MM-dd"
         )}\nText: ${article.text.substring(0, 500)}`
