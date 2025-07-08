@@ -12,6 +12,7 @@ import { SortOption, Article } from "@/types";
 
 export default function Page() {
   const [sources, setSources] = useState<Article[]>([]);
+  const [useReasoningModel, setUseReasoningModel] = useState<boolean>(false);
   const [filters, setFilters] = useState<{
     publications: string[];
     sort: SortOption;
@@ -25,6 +26,7 @@ export default function Page() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({
     body: {
       filters,
+      useReasoningModel,
     },
     onResponse: (response) => {
       responseRef.current = response;
@@ -52,6 +54,10 @@ export default function Page() {
     setFilters((prev) => ({ ...prev, ...newFilters }));
   };
 
+  const handleReasoningModelToggle = () => {
+    setUseReasoningModel((prev) => !prev);
+  };
+
   return (
     <main className="flex flex-col h-screen">
       <TopBar />
@@ -67,6 +73,8 @@ export default function Page() {
             input={input}
             handleInputChange={handleInputChange}
             handleSubmit={handleSubmit}
+            useReasoningModel={useReasoningModel}
+            onReasoningModelToggle={handleReasoningModelToggle}
           />
         </div>
       </div>

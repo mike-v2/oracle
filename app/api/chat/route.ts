@@ -25,8 +25,17 @@ const pineconeIndex = pinecone.index(
 const namespace = pineconeIndex.namespace('articles');
 
 export async function POST(req: Request) {
-  const { messages, filters }: { messages: CoreMessage[]; filters: any } =
-    await req.json();
+  const {
+    messages,
+    filters,
+    useReasoningModel,
+  }: {
+    messages: CoreMessage[];
+    filters: any;
+    useReasoningModel?: boolean;
+  } = await req.json();
+
+  const modelName = useReasoningModel ? "deepseek-reasoner" : "deepseek-chat";
 
   let contextualQuery = messages[0].content as string;
   if (messages.length > 1) {
@@ -144,7 +153,7 @@ Question: ${latestMessage.content as string}
   ];
 
   const result = streamText({
-    model: deepseek("deepseek-chat"),
+    model: deepseek(modelName),
     messages: augmentedMessages,
   });
 
