@@ -67,7 +67,7 @@ export default function Page() {
           filters={filters}
           onFilterChange={handleFilterChange}
         />
-        <div className="flex flex-col w-2/3">
+        <div className="w-2/3 flex flex-col">
           <LLMResponseArea messages={messages} />
           <ChatInput
             input={input}
