@@ -47,7 +47,7 @@ export function SourcesPanel({
   >([]);
 
   React.useEffect(() => {
-    let sorted = [...sources];
+    const sorted = [...sources];
     if (filters.sort === "Date") {
       sorted.sort(
         (a, b) =>

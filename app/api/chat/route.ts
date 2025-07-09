@@ -4,8 +4,42 @@ import { format } from "date-fns";
 import pinecone from "@/lib/pinecone";
 import type { Article } from "@/types";
 import { publications } from "@/lib/constants";
+import { DateRange } from "react-day-picker";
 
 export const maxDuration = 60;
+
+// Type definitions
+interface RequestFilters {
+  publications?: string[];
+  dateRange?: DateRange;
+}
+
+interface PineconeFilter {
+  publication?: string;
+  publication_date?: {
+    $gte?: number;
+    $lte?: number;
+  };
+  $or?: Array<{ publication: string }>;
+  $and?: Array<PineconeFilter>;
+}
+
+interface DateFilter {
+  $gte?: number;
+  $lte?: number;
+}
+
+interface PineconeHit {
+  _id: string;
+  _score: number;
+  fields: Article;
+}
+
+interface PineconeSearchResponse {
+  result?: {
+    hits?: PineconeHit[];
+  };
+}
 
 const deepseek = createOpenAI({
   apiKey: process.env.DEEPSEEK_API_KEY,
@@ -25,7 +59,7 @@ export async function POST(req: Request) {
     useReasoningModel,
   }: {
     messages: CoreMessage[];
-    filters: any;
+      filters: RequestFilters;
     useReasoningModel?: boolean;
   } = await req.json();
 
@@ -67,7 +101,7 @@ EXAMPLE JSON OUTPUT:
 
   const latestMessage = messages[messages.length - 1];
 
-  let pineconeFilter: any = {};
+  let pineconeFilter: PineconeFilter = {};
   if (filters.publications?.length) {
     if (filters.publications.length === 1) {
       pineconeFilter.publication = filters.publications[0];
@@ -80,7 +114,7 @@ EXAMPLE JSON OUTPUT:
     }
   }
 
-  const dateFilter: any = {};
+  const dateFilter: DateFilter = {};
   if (filters.dateRange?.from) {
     dateFilter["$gte"] = new Date(filters.dateRange.from).getTime() / 1000;
   }
@@ -100,7 +134,7 @@ EXAMPLE JSON OUTPUT:
 
   console.log("Pinecone filter:", JSON.stringify(pineconeFilter, null, 2));
 
-  const searchResponse = await namespace.searchRecords({
+  const searchResponse: PineconeSearchResponse = await namespace.searchRecords({
     query: {
       topK: 15,
       inputs: { text: contextualQuery },
@@ -110,9 +144,9 @@ EXAMPLE JSON OUTPUT:
   });
 
   const sources: Article[] =
-    (searchResponse as any)?.result?.hits
-      ?.map((hit: any) => ({ ...hit.fields, id: hit._id, score: hit._score }))
-      .filter((item: Article | undefined): item is Article => !!item) ?? [];
+    (searchResponse.result?.hits
+      ?.map((hit: PineconeHit) => ({ ...hit.fields, id: hit._id, score: hit._score }))
+      .filter((item: Article | undefined): item is Article => !!item)) ?? [];
 
   const publicationDisplayNameMap = new Map(
     publications.map((p) => [p.dbName, p.displayName])
