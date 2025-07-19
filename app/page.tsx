@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+
 import { useChat } from "@ai-sdk/react";
 import { DateRange } from "react-day-picker";
 
@@ -13,6 +14,7 @@ import { SortOption, Article } from "@/types";
 export default function Page() {
   const [sources, setSources] = useState<Article[]>([]);
   const [useReasoningModel, setUseReasoningModel] = useState<boolean>(false);
+  const [isSourcesPanelOpen, setIsSourcesPanelOpen] = useState(false);
   const [filters, setFilters] = useState<{
     publications: string[];
     sort: SortOption;
@@ -60,14 +62,16 @@ export default function Page() {
 
   return (
     <main className="flex flex-col h-screen">
-      <TopBar />
+      <TopBar onMenuClick={() => setIsSourcesPanelOpen(true)} />
       <div className="flex flex-grow overflow-hidden">
         <SourcesPanel
           sources={sources}
           filters={filters}
           onFilterChange={handleFilterChange}
+          isOpen={isSourcesPanelOpen}
+          onClose={() => setIsSourcesPanelOpen(false)}
         />
-        <div className="w-2/3 flex flex-col">
+        <div className="w-full md:w-2/3 flex flex-col">
           <LLMResponseArea messages={messages} />
           <ChatInput
             input={input}
@@ -77,6 +81,12 @@ export default function Page() {
             onReasoningModelToggle={handleReasoningModelToggle}
           />
         </div>
+        {isSourcesPanelOpen && (
+          <div
+            className="fixed inset-0 z-20 bg-black bg-opacity-50 md:hidden"
+            onClick={() => setIsSourcesPanelOpen(false)}
+          />
+        )}
       </div>
     </main>
   );

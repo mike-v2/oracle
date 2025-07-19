@@ -1,8 +1,11 @@
 'use client';
 
-import * as React from 'react';
+import { useEffect, useState } from "react";
+
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, ArrowUpDown } from "lucide-react";
+import { Calendar as CalendarIcon, ArrowUpDown, X } from "lucide-react";
+import { DateRange } from "react-day-picker";
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -17,11 +20,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { DateRange } from "react-day-picker";
-import type { Article, SortOption } from "@/types";
-import { ArticleCard } from "./ArticleCard";
-import { Checkbox } from "./ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArticleCard } from "@/components/ArticleCard";
 import { publications } from "@/lib/constants";
+import type { Article, SortOption } from "@/types";
 
 type SourcesPanelProps = {
   sources: Article[];
@@ -31,6 +33,8 @@ type SourcesPanelProps = {
     dateRange?: DateRange;
   };
   onFilterChange: (newFilters: Partial<SourcesPanelProps["filters"]>) => void;
+  isOpen: boolean;
+  onClose: () => void;
 };
 
 type GroupedSources = {
@@ -41,13 +45,15 @@ export function SourcesPanel({
   sources,
   filters,
   onFilterChange,
+  isOpen,
+  onClose,
 }: SourcesPanelProps) {
-  const [displaySources, setDisplaySources] = React.useState<
+  const [displaySources, setDisplaySources] = useState<
     Article[] | GroupedSources
   >([]);
 
-  React.useEffect(() => {
-    const sorted = [...sources];
+  useEffect(() => {
+    let sorted = [...sources];
     if (filters.sort === "Date") {
       sorted.sort(
         (a, b) =>
@@ -125,7 +131,12 @@ export function SourcesPanel({
   };
 
   return (
-    <div className="w-1/3 border-r overflow-y-auto">
+    <div
+      className={cn(
+        "fixed inset-y-0 left-0 z-30 w-full max-w-sm transform overflow-y-auto border-r bg-white transition-transform duration-300 ease-in-out md:static md:z-auto md:w-1/3 md:translate-x-0",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}
+    >
       <div className="p-4 border-b">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Sources</h2>
@@ -151,6 +162,14 @@ export function SourcesPanel({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={onClose}
+            >
+              <X className="h-6 w-6" />
+            </Button>
           </div>
         </div>
         <div className="px-4 mb-4">
